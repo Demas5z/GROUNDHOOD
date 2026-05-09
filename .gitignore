@@ -7,10 +7,33 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
 *.local
+
+# Env (.env.local already covered by *.local; be explicit for safety)
+.env
+.env.*
+!.env.example
+
+# Next.js
+.next/
+out/
+
+# TypeScript
+*.tsbuildinfo
+
+# Prisma — local DB & migrations cache
+prisma/*.db
+prisma/*.db-journal
+
+# Tooling caches & local agent metadata
+.claude/
+.rtk/
+.orchids/
+.cache/
 
 # Editor directories and files
 .vscode/*
