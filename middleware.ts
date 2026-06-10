@@ -6,7 +6,7 @@ export default auth((req) => {
   const role = req.auth?.user?.role
   const path = req.nextUrl.pathname
 
-  const isAuthPage = path === '/login' || path === '/register'
+  const isAuthPage = path === '/login' || path === '/register' || path === '/forgot-password' || path === '/reset-password'
   const isAccountPage = path.startsWith('/account')
   const isAdminPage = path.startsWith('/admin')
 
@@ -39,5 +39,5 @@ export default auth((req) => {
 })
 
 export const config = {
-  matcher: ['/login', '/register', '/account/:path*', '/admin/:path*'],
+  matcher: ['/login', '/register', '/forgot-password', '/reset-password', '/account/:path*', '/admin/:path*'],
 }

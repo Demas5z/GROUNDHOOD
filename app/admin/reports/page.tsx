@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { TrendingUp, ShoppingBag, Package, BarChart3 } from 'lucide-react'
 import { formatRupiah, STATUS_LABEL, STATUS_COLOR, type OrderStatus } from '@/lib/order-status'
+import ExportControls from './ExportControls'
 
 export default async function ReportsPage() {
   // Counted-as-revenue statuses (per workflow doc: pesanan diproses/dikirim/selesai = pembayaran sudah valid)
@@ -67,6 +68,8 @@ export default async function ReportsPage() {
           Ringkasan penjualan dari pesanan yang sudah diproses, dikirim, dan selesai.
         </p>
       </div>
+
+      <ExportControls />
 
       {/* Summary cards */}
       <div style={{

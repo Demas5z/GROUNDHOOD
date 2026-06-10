@@ -224,9 +224,9 @@ function LoginForm() {
             <motion.div custom={3} initial="hidden" animate="visible" variants={fadeInUp}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <Label htmlFor="password">Password</Label>
-                <a href="#" className="text-label" style={{ textDecoration: 'underline', cursor: 'pointer', fontSize: '9px' }}>
+                <Link href="/forgot-password" className="text-label" style={{ textDecoration: 'underline', cursor: 'pointer', fontSize: '9px' }}>
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <div style={{ position: 'relative' }}>
                 <Lock
