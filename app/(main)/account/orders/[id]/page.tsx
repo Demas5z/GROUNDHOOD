@@ -483,7 +483,9 @@ function BankTransferInfo({ total }: { total: number }) {
           }}>
             {BANK_INFO.bankName}
           </p>
-          <p style={{ fontSize: '10px', color: '#a8a69f' }}>{BANK_INFO.branch}</p>
+          {BANK_INFO.branch && (
+            <p style={{ fontSize: '10px', color: '#a8a69f' }}>{BANK_INFO.branch}</p>
+          )}
         </div>
       </div>
 

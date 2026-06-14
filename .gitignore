@@ -22,6 +22,10 @@ dist-ssr
 .next/
 out/
 
+# Uploaded product images (keep folder, ignore contents)
+public/uploads/*
+!public/uploads/.gitkeep
+
 # TypeScript
 *.tsbuildinfo
 

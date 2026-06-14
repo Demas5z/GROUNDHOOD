@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -47,7 +46,6 @@ const passwordRules = [
 ]
 
 export default function RegisterPage() {
-  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
@@ -77,7 +75,6 @@ export default function RegisterPage() {
         setServerError(result.error)
       } else {
         setSuccess(true)
-        setTimeout(() => router.push('/login?registered=true'), 1800)
       }
     })
   }
@@ -179,7 +176,7 @@ export default function RegisterPage() {
               onMouseLeave={e => (e.currentTarget.style.color = '#a8a69f')}
             >
               <ArrowLeft size={12} />
-              Back to Sign In
+              Back to Login
             </Link>
           </motion.div>
 
@@ -207,9 +204,15 @@ export default function RegisterPage() {
             >
               <CheckCircle2 size={40} style={{ color: '#86efac', margin: '0 auto 16px' }} />
               <p style={{ fontWeight: '700', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#d4d2cb', marginBottom: '8px' }}>
-                Account Created!
+                Cek Email Kamu
               </p>
-              <p style={{ color: '#a8a69f', fontSize: '11px' }}>Redirecting to sign in...</p>
+              <p style={{ color: '#a8a69f', fontSize: '11px', lineHeight: 1.7, marginBottom: '20px' }}>
+                Kami sudah mengirim link verifikasi ke email kamu.
+                Buka inbox (cek juga folder spam) dan klik link untuk mengaktifkan akun sebelum login.
+              </p>
+              <Link href="/login" className="text-label" style={{ textDecoration: 'underline', fontSize: '10px' }}>
+                Ke Halaman Login
+              </Link>
             </motion.div>
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -389,7 +392,7 @@ export default function RegisterPage() {
               >
                 Sudah punya akun?{' '}
                 <Link href="/login" style={{ color: '#d4d2cb', textDecoration: 'underline' }}>
-                  Sign in
+                  Login
                 </Link>
               </motion.p>
             </form>

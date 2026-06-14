@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -13,9 +13,12 @@ model User {
   email                String    @unique
   password             String
   role                 String    @default("user")
-  image                String?
+  image                String?   @db.Text
   phone                String?
-  address              String?
+  address              String?   @db.Text
+  emailVerified        DateTime?
+  verifyToken          String?   @unique
+  verifyTokenExpiresAt DateTime?
   resetToken           String?   @unique
   resetTokenExpiresAt  DateTime?
   createdAt            DateTime  @default(now())
@@ -41,8 +44,8 @@ model Product {
   slug        String   @unique
   price       Int
   stock       Int      @default(0)
-  description String?
-  image       String?
+  description String?  @db.Text
+  image       String?  @db.Text
   categoryId  String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -82,8 +85,8 @@ model Order {
   total           Int      @default(0)
   shippingName    String?
   shippingPhone   String?
-  shippingAddress String?
-  notes           String?
+  shippingAddress String?  @db.Text
+  notes           String?  @db.Text
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -108,9 +111,9 @@ model Payment {
   id         String    @id @default(cuid())
   orderId    String    @unique
   method     String    @default("transfer")
-  proofImage String?
+  proofImage String?   @db.Text
   status     String    @default("pending")
-  notes      String?
+  notes      String?   @db.Text
   verifiedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

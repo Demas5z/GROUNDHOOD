@@ -6,13 +6,11 @@ import { signIn, signOut } from '@/auth'
 import { AuthError } from 'next-auth'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email'
+
+const VERIFY_TOKEN_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
 export type ActionResult = { error?: string; success?: string }
-export type ForgotPasswordResult = ActionResult & { token?: string }
-
-function normalizePhone(p: string) {
-  return p.replace(/[\s\-()]/g, '')
-}
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -42,16 +40,92 @@ export async function registerAction(data: {
   }
 
   const hashed = await bcrypt.hash(parsed.data.password, 12)
+  const token = randomBytes(32).toString('hex')
+  const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_MS)
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       name: parsed.data.name,
       email: parsed.data.email,
       password: hashed,
+      verifyToken: token,
+      verifyTokenExpiresAt: expiresAt,
     },
   })
 
-  return { success: 'Account created! Please sign in.' }
+  try {
+    await sendVerificationEmail(user.email, user.name, token)
+  } catch (err) {
+    // Roll back so the email can be reused for a fresh attempt.
+    await prisma.user.delete({ where: { id: user.id } })
+    const message = err instanceof Error ? err.message : 'Gagal mengirim email verifikasi.'
+    return { error: message }
+  }
+
+  return { success: 'Akun dibuat! Cek email kamu untuk link verifikasi.' }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Email verification
+// ─────────────────────────────────────────────────────────────────
+
+export async function verifyEmailAction(token: string): Promise<ActionResult> {
+  if (!token || token.length < 10) {
+    return { error: 'Token verifikasi tidak valid.' }
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { verifyToken: token },
+    select: { id: true, emailVerified: true, verifyTokenExpiresAt: true },
+  })
+
+  if (!user) {
+    return { error: 'Token verifikasi tidak valid atau sudah digunakan.' }
+  }
+  if (user.emailVerified) {
+    return { success: 'Email sudah terverifikasi. Silakan login.' }
+  }
+  if (!user.verifyTokenExpiresAt || user.verifyTokenExpiresAt < new Date()) {
+    return { error: 'Link verifikasi sudah kadaluarsa. Silakan minta link baru.' }
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerified: new Date(),
+      verifyToken: null,
+      verifyTokenExpiresAt: null,
+    },
+  })
+
+  return { success: 'Email berhasil diverifikasi! Silakan login.' }
+}
+
+export async function resendVerificationAction(email: string): Promise<ActionResult> {
+  const parsed = z.string().email().safeParse(email)
+  // Generic response — don't leak which emails exist.
+  const generic = { success: 'Jika email terdaftar dan belum diverifikasi, link baru telah dikirim.' }
+  if (!parsed.success) return generic
+
+  const user = await prisma.user.findUnique({
+    where: { email: parsed.data },
+    select: { id: true, name: true, email: true, emailVerified: true },
+  })
+  if (!user || user.emailVerified) return generic
+
+  const token = randomBytes(32).toString('hex')
+  const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_MS)
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { verifyToken: token, verifyTokenExpiresAt: expiresAt },
+  })
+
+  try {
+    await sendVerificationEmail(user.email, user.name, token)
+  } catch {
+    return { error: 'Gagal mengirim email. Coba lagi nanti.' }
+  }
+  return generic
 }
 
 function isSafeCallbackUrl(url: string | undefined | null): url is string {
@@ -68,8 +142,17 @@ export async function loginAction(data: {
   // Look up role to choose redirect destination
   const user = await prisma.user.findUnique({
     where: { email: data.email },
-    select: { role: true },
+    select: { role: true, password: true, emailVerified: true },
   })
+
+  // If credentials are actually correct but the email isn't verified,
+  // show a helpful message instead of the generic "invalid" error.
+  if (user && !user.emailVerified) {
+    const passwordOk = await bcrypt.compare(data.password, user.password)
+    if (passwordOk) {
+      return { error: 'Email belum diverifikasi. Cek inbox kamu untuk link verifikasi.' }
+    }
+  }
 
   // Admin always lands on admin dashboard regardless of callbackUrl.
   // Customer honors callbackUrl when safe, else lands on home.
@@ -107,36 +190,30 @@ export async function logoutAction() {
 
 const forgotSchema = z.object({
   email: z.string().email('Format email tidak valid'),
-  phone: z.string().min(6, 'Nomor HP tidak valid'),
 })
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000 // 1 hour
 
 export async function forgotPasswordAction(data: {
   email: string
-  phone: string
-}): Promise<ForgotPasswordResult> {
+}): Promise<ActionResult> {
   const parsed = forgotSchema.safeParse(data)
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message }
   }
 
+  // Always return the same response so attackers can't tell which emails exist.
+  const generic = {
+    success: 'Jika email terdaftar, link reset password telah dikirim ke email tersebut.',
+  }
+
   const user = await prisma.user.findUnique({
     where: { email: parsed.data.email },
-    select: { id: true, phone: true, role: true },
+    select: { id: true, name: true, email: true, role: true },
   })
 
-  // Generic message — don't leak whether email exists or phone mismatch
-  const genericError = 'Email atau nomor HP tidak cocok dengan data terdaftar.'
-  if (!user || !user.phone) return { error: genericError }
-  if (normalizePhone(user.phone) !== normalizePhone(parsed.data.phone)) {
-    return { error: genericError }
-  }
-
-  // Admin accounts cannot self-reset for safety
-  if (user.role === 'admin') {
-    return { error: 'Akun admin tidak dapat reset password secara mandiri.' }
-  }
+  // Don't reveal non-existence; admins can't self-reset for safety.
+  if (!user || user.role === 'admin') return generic
 
   const token = randomBytes(32).toString('hex')
   const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS)
@@ -146,7 +223,14 @@ export async function forgotPasswordAction(data: {
     data: { resetToken: token, resetTokenExpiresAt: expiresAt },
   })
 
-  return { success: 'Verifikasi berhasil.', token }
+  try {
+    await sendPasswordResetEmail(user.email, user.name, token)
+  } catch (err) {
+    // Log for the developer but keep the response generic (anti-enumeration).
+    console.error('Gagal mengirim email reset password:', err)
+  }
+
+  return generic
 }
 
 const resetSchema = z.object({

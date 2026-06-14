@@ -15,16 +15,15 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string; description
 
 export const BANK_INFO = {
   bankName: 'Bank Mandiri',
-  accountNumber: '1370012345678',
-  accountName: 'GROUNDHOOD STORE',
-  branch: 'Jakarta Cabang Sudirman',
+  accountNumber: '1190027032703',
+  accountName: 'FARREL AMIRTA IRBAH',
+  branch: '',
 }
 
-// QR code generated via qrserver.com — replaceable by admin's static QRIS image.
-export const QRIS_IMAGE_URL =
-  'https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=GROUNDHOOD-STORE-QRIS-MERCHANT-ID'
+// Static QRIS image stored in public/. Replaceable by the merchant's own QRIS.
+export const QRIS_IMAGE_URL = '/QRIS.jpeg'
 
-export const QRIS_MERCHANT_NAME = 'GROUNDHOOD STORE'
+export const QRIS_MERCHANT_NAME = 'FARREL AMIRTA IRBAH'
 
 export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   transfer: 'Transfer Bank',

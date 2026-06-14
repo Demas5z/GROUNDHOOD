@@ -3,6 +3,7 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { deleteUploadedFile } from '@/lib/uploads'
 
 export type ActionResult = { error?: string; success?: string }
 
@@ -42,12 +43,15 @@ export async function verifyPaymentAction(
       }),
     ])
   } else {
-    // tidak_valid → status pesanan kembali ke 'menunggu_pembayaran'
+    // tidak_valid → bukti dianggap tidak sah: hapus dari DB & disk
+    // (hanya bukti valid yang disimpan), status pesanan kembali ke
+    // 'menunggu_pembayaran' agar customer upload ulang.
     await prisma.$transaction([
       prisma.payment.update({
         where: { id: paymentId },
         data: {
           status: 'tidak_valid',
+          proofImage: null,
           notes: notes || 'Bukti tidak valid, customer perlu upload ulang.',
         },
       }),
@@ -56,6 +60,9 @@ export async function verifyPaymentAction(
         data: { status: 'menunggu_pembayaran' },
       }),
     ])
+
+    // Hapus file bukti dari disk — bukti tidak valid tidak disimpan di mana pun.
+    await deleteUploadedFile(payment.proofImage)
   }
 
   revalidatePath('/admin/payments')

@@ -24,12 +24,37 @@ export default async function HomePage() {
       {/* ─── HERO ─────────────────────────────────────────── */}
       <section style={{
         position: 'relative',
-        padding: '80px 40px 100px',
-        maxWidth: '1400px',
-        margin: '0 auto',
+        overflow: 'hidden',
         borderBottom: '1px dotted rgba(212,210,203,0.25)',
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '40px' }}>
+        {/* Video background — taruh file di public/hero-bg.mp4 */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          aria-hidden="true"
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', zIndex: 0,
+          }}
+        >
+          <source src="/hero-bg.mp4" type="video/mp4" />
+        </video>
+
+        {/* Overlay gelap agar teks tetap terbaca di atas video */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 1,
+          background: 'linear-gradient(90deg, rgba(26,26,26,0.88) 0%, rgba(26,26,26,0.6) 55%, rgba(26,26,26,0.35) 100%)',
+        }} />
+
+        <div style={{
+          position: 'relative', zIndex: 2,
+          maxWidth: '1400px', margin: '0 auto',
+          padding: '80px 40px 100px',
+          display: 'grid', gridTemplateColumns: '1fr', gap: '40px',
+        }}>
           <p style={{
             fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase',
             color: '#a8a69f',
@@ -44,8 +69,8 @@ export default async function HomePage() {
             color: '#d4d2cb',
             lineHeight: 0.95,
           }}>
-            Pakaian Thrift<br />
-            <span style={{ color: '#a8a69f' }}>Pilihan Kurator.</span>
+            ARCHIVE FASHION<br />
+            <span style={{ color: '#a8a69f' }}>FOR THE NEXT GENERATION</span>
           </h1>
           <p style={{
             color: '#a8a69f',
@@ -54,8 +79,7 @@ export default async function HomePage() {
             maxWidth: '520px',
             letterSpacing: '0.02em',
           }}>
-            Setiap item dikurasi tangan dari pasar loak terbaik di Indonesia. Bukan just secondhand —
-            ini archive piece dengan jiwa. Buy less, wear longer.
+            From vintage gems to everyday streetwear, every piece is picked for its quality, character, and story. Not just secondhand, but made to be worn again.
           </p>
           <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '8px' }}>
             <Link href="/shop" className="btn-pill btn-pill-filled">

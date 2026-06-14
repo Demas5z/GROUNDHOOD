@@ -166,7 +166,7 @@ export default function AdminSidebar({ user }: { user: AdminUser }) {
             onMouseLeave={e => (e.currentTarget.style.color = '#a8a69f')}
           >
             <LogOut size={12} />
-            Sign Out
+            Logout
           </button>
         </form>
       </div>

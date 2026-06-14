@@ -142,8 +142,8 @@ export default function Navbar({ cartCount = 0 }) {
                   <form action={logoutAction}>
                     <button
                       type="submit"
-                      title="Sign out"
-                      aria-label="Sign out"
+                      title="Logout"
+                      aria-label="Logout"
                       className="nav-signout"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -156,7 +156,7 @@ export default function Navbar({ cartCount = 0 }) {
                 </div>
               ) : (
                 <>
-                  <Link href="/login" className="nav-link">Sign In</Link>
+                  <Link href="/login" className="nav-link">Login</Link>
                   <Link href="/register" className="nav-register">Register</Link>
                 </>
               )}
@@ -306,7 +306,7 @@ export default function Navbar({ cartCount = 0 }) {
                 <>
                   <li>
                     <Link href="/login" onClick={() => setMenuOpen(false)} className="menu-secondary">
-                      Sign In
+                      Login
                     </Link>
                   </li>
                   <li>

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ImagePlus, AlertCircle, CheckCircle, Send } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { Upload, X, AlertCircle, CheckCircle, Send } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { uploadPaymentProofAction } from '@/actions/payment'
+import { uploadPaymentProofImageAction } from '@/actions/upload'
 
 type Props = {
   orderId: string
@@ -17,9 +17,26 @@ export default function UploadProofForm({ orderId, defaultProofImage, defaultNot
   const [proofImage, setProofImage] = useState(defaultProofImage ?? '')
   const [notes, setNotes] = useState(defaultNotes ?? '')
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const isValidUrl = /^https?:\/\/.+/i.test(proofImage.trim())
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFeedback(null)
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await uploadPaymentProofImageAction(fd)
+    setUploading(false)
+    if (res.error) {
+      setFeedback({ type: 'error', message: res.error })
+    } else if (res.url) {
+      setProofImage(res.url)
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,62 +55,89 @@ export default function UploadProofForm({ orderId, defaultProofImage, defaultNot
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
       <div>
-        <Label htmlFor="proofImage" style={{ display: 'block', marginBottom: '10px' }}>
-          URL Bukti Pembayaran
+        <Label style={{ display: 'block', marginBottom: '10px' }}>
+          Bukti Pembayaran
         </Label>
-        <div style={{ position: 'relative' }}>
-          <ImagePlus size={13} style={{
-            position: 'absolute', left: '18px', top: '50%',
-            transform: 'translateY(-50%)', color: '#a8a69f', pointerEvents: 'none',
-          }} />
-          <Input
-            id="proofImage"
-            type="url"
-            placeholder="https://imgur.com/..."
-            value={proofImage}
-            onChange={(e) => setProofImage(e.target.value)}
-            style={{ paddingLeft: '44px' }}
-            required
-          />
-        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          onChange={onFileChange}
+          style={{ display: 'none' }}
+        />
+
+        {proofImage ? (
+          <div style={{
+            padding: '12px',
+            border: '1px dotted rgba(212,210,203,0.25)',
+            borderRadius: '14px',
+            background: 'rgba(212,210,203,0.02)',
+          }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginBottom: '10px',
+            }}>
+              <p style={{
+                fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: '#a8a69f',
+              }}>
+                Preview
+              </p>
+              <button
+                type="button"
+                onClick={() => setProofImage('')}
+                title="Hapus gambar"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#f87171', fontSize: '10px', letterSpacing: '0.1em',
+                  textTransform: 'uppercase', padding: 0,
+                }}
+              >
+                <X size={12} /> Hapus
+              </button>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={proofImage}
+              alt="Preview bukti"
+              style={{
+                width: '100%', maxWidth: '280px',
+                borderRadius: '8px', display: 'block',
+                border: '1px dotted rgba(212,210,203,0.2)',
+              }}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', gap: '10px',
+              width: '100%', padding: '32px 16px',
+              background: 'rgba(212,210,203,0.03)',
+              border: '1px dotted rgba(212,210,203,0.35)', borderRadius: '14px',
+              color: '#a8a69f', cursor: uploading ? 'wait' : 'pointer',
+              fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase',
+              fontFamily: 'inherit',
+            }}
+          >
+            <Upload size={20} />
+            {uploading ? 'Mengunggah...' : 'Pilih File dari Perangkat'}
+          </button>
+        )}
+
         <p style={{
           fontSize: '10px', color: '#a8a69f', lineHeight: 1.7,
           marginTop: '8px', letterSpacing: '0.02em',
         }}>
-          Upload screenshot bukti transfer / QRIS ke layanan seperti Imgur,
-          ImgBB, atau Google Drive (publik), lalu paste URL gambarnya di sini.
+          Upload screenshot bukti transfer / QRIS langsung dari komputer atau HP.
+          Format JPG, PNG, WEBP, atau GIF — maksimal 5MB.
         </p>
       </div>
-
-      {/* Preview */}
-      {isValidUrl && (
-        <div style={{
-          padding: '12px',
-          border: '1px dotted rgba(212,210,203,0.25)',
-          borderRadius: '14px',
-          background: 'rgba(212,210,203,0.02)',
-        }}>
-          <p style={{
-            fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase',
-            color: '#a8a69f', marginBottom: '10px',
-          }}>
-            Preview
-          </p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={proofImage}
-            alt="Preview bukti"
-            style={{
-              width: '100%', maxWidth: '280px',
-              borderRadius: '8px', display: 'block',
-              border: '1px dotted rgba(212,210,203,0.2)',
-            }}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none'
-            }}
-          />
-        </div>
-      )}
 
       <div>
         <Label htmlFor="notes" style={{ display: 'block', marginBottom: '10px' }}>

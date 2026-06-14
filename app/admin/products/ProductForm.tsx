@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, AlertCircle } from 'lucide-react'
+import { CheckCircle, AlertCircle, Upload, X } from 'lucide-react'
 import { createProductAction, updateProductAction } from '@/actions/admin/products'
+import { uploadProductImageAction } from '@/actions/admin/upload'
 
 type Category = { id: string; name: string }
 
@@ -25,6 +26,8 @@ export default function ProductForm({ categories, initial }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({
     name: initial?.name ?? '',
     price: initial?.price?.toString() ?? '',
@@ -59,6 +62,23 @@ export default function ProductForm({ categories, initial }: Props) {
         if (result?.error) setFeedback({ type: 'error', message: result.error })
       }
     })
+  }
+
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFeedback(null)
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await uploadProductImageAction(fd)
+    setUploading(false)
+    if (res.error) {
+      setFeedback({ type: 'error', message: res.error })
+    } else if (res.url) {
+      setForm(f => ({ ...f, image: res.url! }))
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const labelStyle: React.CSSProperties = {
@@ -131,21 +151,85 @@ export default function ProductForm({ categories, initial }: Props) {
         </div>
 
         <div>
-          <label style={labelStyle}>URL Gambar</label>
+          <label style={labelStyle}>Gambar Produk</label>
+
           <input
-            type="url"
-            value={form.image}
-            onChange={e => setForm({ ...form, image: e.target.value })}
-            style={inputStyle}
-            placeholder="https://images.unsplash.com/..."
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={onFileChange}
+            style={{ display: 'none' }}
           />
-          {form.image && (
-            <img src={form.image} alt="" style={{
-              marginTop: '12px', width: '120px', height: '120px',
-              objectFit: 'cover', border: '1px dotted rgba(212,210,203,0.3)',
-              borderRadius: '4px',
-            }} />
-          )}
+
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+            {form.image ? (
+              <div style={{ position: 'relative' }}>
+                <img src={form.image} alt="" style={{
+                  width: '120px', height: '120px',
+                  objectFit: 'cover', border: '1px dotted rgba(212,210,203,0.3)',
+                  borderRadius: '4px',
+                }} />
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, image: '' })}
+                  title="Hapus gambar"
+                  style={{
+                    position: 'absolute', top: '-8px', right: '-8px',
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    background: '#1a1a1a', border: '1px dotted rgba(248,113,113,0.6)',
+                    color: '#f87171', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', padding: 0,
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{
+                  width: '120px', height: '120px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  justifyContent: 'center', gap: '8px',
+                  background: 'rgba(212,210,203,0.04)',
+                  border: '1px dotted rgba(212,210,203,0.3)', borderRadius: '4px',
+                  color: '#a8a69f', cursor: uploading ? 'wait' : 'pointer',
+                  fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase',
+                }}
+              >
+                <Upload size={18} />
+                {uploading ? 'Mengunggah...' : 'Pilih File'}
+              </button>
+            )}
+
+            <div style={{ flex: 1 }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{
+                  padding: '9px 18px', background: 'transparent', color: '#d4d2cb',
+                  border: '1px dotted rgba(212,210,203,0.3)', borderRadius: '100px',
+                  fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase',
+                  cursor: uploading ? 'wait' : 'pointer', marginBottom: '10px',
+                }}
+              >
+                {form.image ? 'Ganti Gambar' : 'Upload dari Komputer'}
+              </button>
+              <p style={{ fontSize: '10px', color: '#75736d', lineHeight: 1.6, margin: '0 0 12px' }}>
+                JPG, PNG, WEBP, atau GIF — maksimal 5MB.
+              </p>
+              <input
+                type="text"
+                value={form.image}
+                onChange={e => setForm({ ...form, image: e.target.value })}
+                style={{ ...inputStyle, padding: '8px 12px', fontSize: '11px' }}
+                placeholder="atau tempel URL gambar di sini"
+              />
+            </div>
+          </div>
         </div>
 
         <div>

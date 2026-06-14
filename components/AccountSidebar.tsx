@@ -118,7 +118,7 @@ export default function AccountSidebar({ user }: { user: SidebarUser }) {
             onMouseLeave={e => (e.currentTarget.style.color = '#a8a69f')}
           >
             <LogOut size={14} />
-            Sign Out
+            Logout
           </button>
         </form>
       </div>

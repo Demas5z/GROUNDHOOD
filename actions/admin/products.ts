@@ -25,7 +25,14 @@ const productSchema = z.object({
   price: z.number().int().positive('Harga harus lebih dari 0'),
   stock: z.number().int().min(0, 'Stok tidak boleh negatif'),
   description: z.string().optional(),
-  image: z.string().url('URL gambar tidak valid').optional().or(z.literal('')),
+  image: z
+    .string()
+    .refine(
+      (v) => v === '' || v.startsWith('/') || /^https?:\/\//i.test(v),
+      'Gambar tidak valid'
+    )
+    .optional()
+    .or(z.literal('')),
   categoryId: z.string().min(1, 'Kategori wajib dipilih'),
 })
 

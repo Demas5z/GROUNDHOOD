@@ -4,6 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { deleteUploadedFile } from '@/lib/uploads'
 
 export type ActionResult = { error?: string; success?: string }
 
@@ -11,8 +12,11 @@ const uploadSchema = z.object({
   orderId: z.string().min(1),
   proofImage: z
     .string()
-    .url('URL bukti tidak valid')
-    .min(8, 'URL bukti tidak valid'),
+    .min(1, 'Bukti pembayaran wajib diunggah')
+    .refine(
+      (v) => v.startsWith('/') || /^https?:\/\//i.test(v),
+      'Bukti pembayaran tidak valid'
+    ),
   notes: z.string().max(500, 'Catatan terlalu panjang').optional(),
 })
 
@@ -36,6 +40,10 @@ export async function uploadPaymentProofAction(data: {
   if (order.status === 'dibatalkan') {
     return { error: 'Pesanan ini sudah dibatalkan.' }
   }
+
+  // If a previous proof file exists and is being replaced, remember it so we
+  // can remove the orphaned file after the update succeeds.
+  const previousProof = order.payment?.proofImage ?? null
 
   // Update payment + transition order status atomically
   try {
@@ -70,6 +78,11 @@ export async function uploadPaymentProofAction(data: {
         })
       }
     })
+
+    // Remove the replaced file so old proofs don't pile up on disk.
+    if (previousProof && previousProof !== parsed.data.proofImage) {
+      await deleteUploadedFile(previousProof)
+    }
 
     revalidatePath(`/account/orders/${order.id}`)
     revalidatePath('/account/orders')

@@ -28,6 +28,7 @@ async function main() {
       role: 'admin',
       phone: '+62 812 0000 0001',
       address: 'Jl. Cikajang No. 1, Jakarta Selatan',
+      emailVerified: new Date(),
     },
   })
 
@@ -39,6 +40,7 @@ async function main() {
       role: 'user',
       phone: '+62 812 3456 7890',
       address: 'Jl. Kemang Raya No. 12, Jakarta Selatan',
+      emailVerified: new Date(),
     },
   })
 
@@ -50,6 +52,7 @@ async function main() {
       role: 'user',
       phone: '+62 821 9876 5432',
       address: 'Jl. Senopati No. 45, Jakarta Selatan',
+      emailVerified: new Date(),
     },
   })
 

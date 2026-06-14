@@ -154,7 +154,7 @@ function LoginForm() {
           </motion.div>
 
           <motion.div custom={1} initial="hidden" animate="visible" variants={fadeInUp}>
-            <p className="text-label" style={{ marginBottom: '10px' }}>Sign In to Your Account</p>
+            <p className="text-label" style={{ marginBottom: '10px' }}>Login to Your Account</p>
             <h1 style={{
               fontSize: 'clamp(2rem, 4vw, 2.8rem)', fontWeight: '700',
               textTransform: 'uppercase', letterSpacing: '-0.025em',
@@ -174,7 +174,7 @@ function LoginForm() {
                 color: '#86efac', fontSize: '11px', letterSpacing: '0.05em',
               }}
             >
-              Account created! Please sign in.
+              Account created! Please login.
             </motion.div>
           )}
 
@@ -276,7 +276,7 @@ function LoginForm() {
                 className="w-full"
                 style={{ marginTop: '4px' }}
               >
-                {isPending ? 'Signing In...' : 'Sign In'}
+                {isPending ? 'Logging In...' : 'Login'}
               </Button>
             </motion.div>
 
