@@ -2,7 +2,8 @@
 const nextConfig = {
   experimental: {
     serverActions: {
-      bodySizeLimit: '6mb',
+      // Large enough to allow uploading background videos via the admin panel.
+      bodySizeLimit: '50mb',
     },
   },
   images: {

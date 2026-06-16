@@ -2,12 +2,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight, Package, Truck, ShieldCheck, Sparkles } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+import { getAsset } from '@/lib/assets'
 import { formatRupiah } from '@/lib/order-status'
 
 export const metadata = { title: 'GROUNDHOOD | Thrift Store' }
 
 export default async function HomePage() {
-  const [featured, categories] = await Promise.all([
+  const [featured, categories, heroBg] = await Promise.all([
     prisma.product.findMany({
       orderBy: { createdAt: 'desc' },
       take: 8,
@@ -17,6 +18,7 @@ export default async function HomePage() {
       orderBy: { name: 'asc' },
       include: { _count: { select: { products: true } } },
     }),
+    getAsset('hero-bg'),
   ])
 
   return (
@@ -27,21 +29,32 @@ export default async function HomePage() {
         overflow: 'hidden',
         borderBottom: '1px dotted rgba(212,210,203,0.25)',
       }}>
-        {/* Video background — taruh file di public/hero-bg.mp4 */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          aria-hidden="true"
-          style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
-            objectFit: 'cover', zIndex: 0,
-          }}
-        >
-          <source src="/hero-bg.mp4" type="video/mp4" />
-        </video>
+        {/* Background sourced from the asset_web table (key: hero-bg) */}
+        {heroBg.type === 'video' ? (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-hidden="true"
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover', zIndex: 0,
+            }}
+          >
+            <source src={heroBg.url} type={heroBg.mimeType ?? 'video/mp4'} />
+          </video>
+        ) : (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute', inset: 0, zIndex: 0,
+              backgroundImage: `url(${heroBg.url})`,
+              backgroundSize: 'cover', backgroundPosition: 'center',
+            }}
+          />
+        )}
 
         {/* Overlay gelap agar teks tetap terbaca di atas video */}
         <div style={{

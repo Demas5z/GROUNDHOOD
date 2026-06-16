@@ -10,6 +10,7 @@ import {
   Receipt,
   Users,
   BarChart3,
+  Image as ImageIcon,
   LogOut,
   ExternalLink,
 } from 'lucide-react'
@@ -28,6 +29,7 @@ const navItems = [
   { href: '/admin/payments',  label: 'Verifikasi Bayar',   icon: Receipt },
   { href: '/admin/users',     label: 'Kelola User',        icon: Users },
   { href: '/admin/reports',   label: 'Laporan Transaksi',  icon: BarChart3 },
+  { href: '/admin/assets',    label: 'Kelola Aset Web',    icon: ImageIcon },
 ]
 
 export default function AdminSidebar({ user }: { user: AdminUser }) {

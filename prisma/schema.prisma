@@ -107,6 +107,24 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
 }
 
+model AssetWeb {
+  id        String   @id @default(cuid())
+  key       String   @unique // logical identifier, e.g. "hero-bg", "login-bg"
+  name      String // human-friendly label
+  type      String   @default("image") // "image" | "video"
+  url       String   @db.Text // public path or remote URL, e.g. /Login_BG.mp4
+  mimeType  String? // e.g. "video/mp4", "image/jpeg"
+  alt       String? // accessibility / descriptive text
+  width     Int?
+  height    Int?
+  fileSize  Int? // bytes
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("asset_web")
+}
+
 model Payment {
   id         String    @id @default(cuid())
   orderId    String    @unique
