@@ -42,3 +42,16 @@ export const PAYMENT_STATUS_COLOR: Record<string, string> = {
 export function formatRupiah(amount: number) {
   return `Rp ${amount.toLocaleString('id-ID')}`
 }
+
+// Format a numeric value (or digit string) with "." thousands separators for
+// display in price inputs, e.g. 1500000 -> "1.500.000". Returns "" when empty.
+export function formatThousands(value: string | number) {
+  const digits = String(value).replace(/\D/g, '')
+  if (!digits) return ''
+  return Number(digits).toLocaleString('id-ID')
+}
+
+// Strip the "." separators back to a raw digit string, e.g. "1.500.000" -> "1500000".
+export function parseThousands(value: string) {
+  return value.replace(/\D/g, '')
+}

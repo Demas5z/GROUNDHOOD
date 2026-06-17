@@ -16,6 +16,12 @@ model User {
   image                String?   @db.Text
   phone                String?
   address              String?   @db.Text
+  shipProvinceId       String?
+  shipProvince         String?
+  shipCity             String?
+  shipDistrict         String?
+  shipPostalCode       String?
+  shipAddressDetail    String?   @db.Text
   emailVerified        DateTime?
   verifyToken          String?   @unique
   verifyTokenExpiresAt DateTime?
@@ -82,10 +88,17 @@ model Order {
   orderNumber     String   @unique
   userId          String
   status          String   @default("menunggu_pembayaran")
+  subtotal        Int      @default(0)
+  shippingCost    Int      @default(0)
   total           Int      @default(0)
   shippingName    String?
   shippingPhone   String?
   shippingAddress String?  @db.Text
+  shippingProvince   String?
+  shippingCity       String?
+  shippingDistrict   String?
+  shippingPostalCode String?
+  shippingDistanceKm Int?
   notes           String?  @db.Text
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -123,6 +136,17 @@ model AssetWeb {
   updatedAt DateTime @updatedAt
 
   @@map("asset_web")
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g. "payment.accountNumber", "store.address"
+  value     String   @db.Text
+  group     String // "payment" | "store"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("site_setting")
 }
 
 model Payment {

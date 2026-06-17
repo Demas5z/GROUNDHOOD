@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, AlertCircle, Upload, X } from 'lucide-react'
 import { createProductAction, updateProductAction } from '@/actions/admin/products'
 import { uploadProductImageAction } from '@/actions/admin/upload'
+import { formatThousands, parseThousands } from '@/lib/order-status'
 
 type Category = { id: string; name: string }
 
@@ -113,13 +114,13 @@ export default function ProductForm({ categories, initial }: Props) {
           <div>
             <label style={labelStyle}>Harga (Rupiah) *</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               required
-              min="0"
-              value={form.price}
-              onChange={e => setForm({ ...form, price: e.target.value })}
+              value={formatThousands(form.price)}
+              onChange={e => setForm({ ...form, price: parseThousands(e.target.value) })}
               style={inputStyle}
-              placeholder="250000"
+              placeholder="250.000"
             />
           </div>
           <div>

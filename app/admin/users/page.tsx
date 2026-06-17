@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { Users, Shield } from 'lucide-react'
+import { Shield } from 'lucide-react'
 import { formatRupiah } from '@/lib/order-status'
 
 export default async function UsersPage() {

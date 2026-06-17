@@ -4,6 +4,8 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { getProvince } from '@/lib/regions'
+import { quoteShipping } from '@/lib/shipping'
 
 export type CheckoutResult = { error?: string; orderId?: string }
 
@@ -13,7 +15,11 @@ const checkoutSchema = z.object({
     .string()
     .min(8, 'Nomor HP minimal 8 digit')
     .regex(/^[+0-9 ()-]+$/, 'Nomor HP hanya boleh berisi angka dan tanda + ( ) -'),
-  shippingAddress: z.string().min(10, 'Alamat lengkap minimal 10 karakter'),
+  provinceId: z.string().min(1, 'Provinsi wajib dipilih'),
+  city: z.string().min(2, 'Kabupaten/Kota wajib dipilih'),
+  district: z.string().min(2, 'Kecamatan wajib diisi'),
+  postalCode: z.string().regex(/^\d{5}$/, 'Kode pos harus 5 digit angka'),
+  addressDetail: z.string().min(10, 'Alamat lengkap minimal 10 karakter'),
   notes: z.string().optional(),
   paymentMethod: z.enum(['transfer', 'qris'], {
     errorMap: () => ({ message: 'Metode pembayaran wajib dipilih' }),
@@ -36,6 +42,17 @@ async function generateOrderNumber(): Promise<string> {
   return `${prefix}${pad(count + 1, 4)}`
 }
 
+/** Compose the structured address into a single human-readable line. */
+function composeAddress(d: {
+  addressDetail: string
+  district: string
+  city: string
+  provinceName: string
+  postalCode: string
+}): string {
+  return `${d.addressDetail}, Kec. ${d.district}, ${d.city}, ${d.provinceName} ${d.postalCode}`
+}
+
 export async function createOrderAction(data: CheckoutInput): Promise<CheckoutResult> {
   const session = await auth()
   if (!session?.user?.id) return { error: 'Sesi berakhir, silakan login ulang.' }
@@ -44,6 +61,8 @@ export async function createOrderAction(data: CheckoutInput): Promise<CheckoutRe
   if (!parsed.success) return { error: parsed.error.errors[0].message }
 
   const userId = session.user.id
+  const province = getProvince(parsed.data.provinceId)
+  if (!province) return { error: 'Provinsi tidak valid.' }
 
   // Load cart with products to verify stock
   const cart = await prisma.cart.findUnique({
@@ -67,8 +86,26 @@ export async function createOrderAction(data: CheckoutInput): Promise<CheckoutRe
     }
   }
 
-  const total = cart.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0)
+  const subtotal = cart.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0)
+
+  // Authoritative ongkir — recomputed server-side, never trusted from client.
+  const quote = quoteShipping({
+    provinceId: parsed.data.provinceId,
+    cityName: parsed.data.city,
+    subtotal,
+  })
+  if (!quote) return { error: 'Gagal menghitung ongkir untuk lokasi tersebut.' }
+
+  const shippingCost = quote.cost
+  const total = subtotal + shippingCost
   const orderNumber = await generateOrderNumber()
+  const fullAddress = composeAddress({
+    addressDetail: parsed.data.addressDetail,
+    district: parsed.data.district,
+    city: parsed.data.city,
+    provinceName: province.name,
+    postalCode: parsed.data.postalCode,
+  })
 
   // Atomic transaction: order + items + payment + stock decrement + cart cleanup
   try {
@@ -78,10 +115,17 @@ export async function createOrderAction(data: CheckoutInput): Promise<CheckoutRe
           orderNumber,
           userId,
           status: 'menunggu_pembayaran',
+          subtotal,
+          shippingCost,
           total,
           shippingName: parsed.data.shippingName,
           shippingPhone: parsed.data.shippingPhone,
-          shippingAddress: parsed.data.shippingAddress,
+          shippingAddress: fullAddress,
+          shippingProvince: province.name,
+          shippingCity: parsed.data.city,
+          shippingDistrict: parsed.data.district,
+          shippingPostalCode: parsed.data.postalCode,
+          shippingDistanceKm: quote.distanceKm,
           notes: parsed.data.notes ?? null,
           items: {
             create: cart.items.map((i) => ({
@@ -111,11 +155,27 @@ export async function createOrderAction(data: CheckoutInput): Promise<CheckoutRe
       // Empty cart
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } })
 
+      // Persist structured address so it can be reused next time
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          phone: parsed.data.shippingPhone,
+          address: fullAddress,
+          shipProvinceId: parsed.data.provinceId,
+          shipProvince: province.name,
+          shipCity: parsed.data.city,
+          shipDistrict: parsed.data.district,
+          shipPostalCode: parsed.data.postalCode,
+          shipAddressDetail: parsed.data.addressDetail,
+        },
+      })
+
       return created
     })
 
     revalidatePath('/cart')
     revalidatePath('/account/orders')
+    revalidatePath('/account/profile')
     revalidatePath('/', 'layout')
     return { orderId: order.id }
   } catch (error) {

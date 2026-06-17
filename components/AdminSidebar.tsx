@@ -11,6 +11,7 @@ import {
   Users,
   BarChart3,
   Image as ImageIcon,
+  Settings,
   LogOut,
   ExternalLink,
 } from 'lucide-react'
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/admin/users',     label: 'Kelola User',        icon: Users },
   { href: '/admin/reports',   label: 'Laporan Transaksi',  icon: BarChart3 },
   { href: '/admin/assets',    label: 'Kelola Aset Web',    icon: ImageIcon },
+  { href: '/admin/settings',  label: 'Pengaturan Toko',    icon: Settings },
 ]
 
 export default function AdminSidebar({ user }: { user: AdminUser }) {

@@ -1,37 +1,10 @@
-import Link from 'next/link'
 import { Mail, MapPin, Instagram, Clock, MessageSquare } from 'lucide-react'
+import { getStoreSettings } from '@/lib/settings'
 
 export const metadata = {
   title: 'Contact',
   description: 'Hubungi tim GROUNDHOOD untuk pertanyaan, kerja sama, atau bantuan pesanan.',
 }
-
-const channels = [
-  {
-    icon: Mail,
-    label: 'Email',
-    value: 'hello@groundhood.com',
-    href: 'mailto:hello@groundhood.com',
-  },
-  {
-    icon: Instagram,
-    label: 'Instagram',
-    value: '@groundhood.id',
-    href: '#',
-  },
-  {
-    icon: MapPin,
-    label: 'Studio',
-    value: 'Jl. Cikajang No. 1, Jakarta Selatan',
-    href: '#',
-  },
-  {
-    icon: Clock,
-    label: 'Jam Operasional',
-    value: 'Senin – Jumat, 10.00 – 18.00 WIB',
-    href: null,
-  },
-]
 
 const faqs = [
   {
@@ -52,7 +25,16 @@ const faqs = [
   },
 ]
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const store = await getStoreSettings()
+
+  const channels = [
+    { icon: Mail, label: 'Email', value: store.email, href: `mailto:${store.email}` },
+    { icon: Instagram, label: 'Instagram', value: store.instagram, href: '#' },
+    { icon: MapPin, label: 'Studio', value: store.address, href: '#' },
+    { icon: Clock, label: 'Jam Operasional', value: store.operatingHours, href: null },
+  ]
+
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '60px 40px 100px' }}>
       <p className="text-label" style={{ marginBottom: '12px' }}>Get in touch</p>
@@ -159,7 +141,7 @@ export default function ContactPage() {
           Tidak menemukan jawaban? Tulis email ke kami — biasanya kami balas dalam
           1×24 jam.
         </p>
-        <a href="mailto:hello@groundhood.com" className="btn-pill btn-pill-filled">
+        <a href={`mailto:${store.email}`} className="btn-pill btn-pill-filled">
           Email Kami
         </a>
       </section>

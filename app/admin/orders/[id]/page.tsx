@@ -114,25 +114,42 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   </p>
                 </div>
               ))}
-              {/* Total */}
+              {/* Totals breakdown */}
               <div style={{
                 padding: '14px 18px',
                 borderTop: '1px dotted rgba(212,210,203,0.3)',
                 background: 'rgba(212,210,203,0.04)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                display: 'flex', flexDirection: 'column', gap: '8px',
               }}>
-                <p style={{
-                  fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase',
-                  color: '#a8a69f',
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '10px', color: '#a8a69f', letterSpacing: '0.05em' }}>Subtotal</span>
+                  <span style={{ fontSize: '11px', color: '#d4d2cb' }}>{formatRupiah(order.subtotal)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '10px', color: '#a8a69f', letterSpacing: '0.05em' }}>
+                    Ongkir{order.shippingDistanceKm ? ` (± ${order.shippingDistanceKm} km)` : ''}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#d4d2cb' }}>
+                    {order.shippingCost === 0 ? 'GRATIS' : formatRupiah(order.shippingCost)}
+                  </span>
+                </div>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  paddingTop: '8px', borderTop: '1px dotted rgba(212,210,203,0.2)',
                 }}>
-                  Total
-                </p>
-                <p style={{
-                  fontSize: '16px', fontWeight: '700', color: '#86efac',
-                  letterSpacing: '-0.02em',
-                }}>
-                  {formatRupiah(order.total)}
-                </p>
+                  <p style={{
+                    fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase',
+                    color: '#a8a69f',
+                  }}>
+                    Total
+                  </p>
+                  <p style={{
+                    fontSize: '16px', fontWeight: '700', color: '#86efac',
+                    letterSpacing: '-0.02em',
+                  }}>
+                    {formatRupiah(order.total)}
+                  </p>
+                </div>
               </div>
             </div>
           </section>

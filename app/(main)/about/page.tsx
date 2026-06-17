@@ -1,12 +1,14 @@
 import Link from 'next/link'
-import { Sparkles, Recycle, HandCoins, Heart } from 'lucide-react'
+import { Sparkles, Recycle, HandCoins, Heart, MapPin } from 'lucide-react'
+import { getStoreSettings } from '@/lib/settings'
 
 export const metadata = {
   title: 'About',
   description: 'Cerita di balik GROUNDHOOD — thrift store dengan kurasi tangan dan jiwa archive piece.',
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const store = await getStoreSettings()
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '60px 40px 100px' }}>
       <p className="text-label" style={{ marginBottom: '12px' }}>About</p>
@@ -107,6 +109,15 @@ export default function AboutPage() {
         <Link href="/shop" className="btn-pill btn-pill-filled">
           Browse Shop
         </Link>
+
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
+          marginTop: '28px', color: '#a8a69f', fontSize: '11px',
+          letterSpacing: '0.04em',
+        }}>
+          <MapPin size={13} />
+          <span>{store.name} · {store.address}</span>
+        </div>
       </section>
     </div>
   )

@@ -8,9 +8,8 @@ import {
   STATUS_LABEL, STATUS_COLOR, PAYMENT_STATUS_LABEL, PAYMENT_STATUS_COLOR,
   formatRupiah, type OrderStatus,
 } from '@/lib/order-status'
-import {
-  BANK_INFO, QRIS_IMAGE_URL, QRIS_MERCHANT_NAME, PAYMENT_METHOD_LABEL,
-} from '@/lib/payment-config'
+import { PAYMENT_METHOD_LABEL } from '@/lib/payment-config'
+import { getPaymentSettings, type PaymentSettings } from '@/lib/settings'
 import UploadProofForm from './UploadProofForm'
 
 type Props = { params: Promise<{ id: string }> }
@@ -30,6 +29,8 @@ export default async function OrderDetailPage({ params }: Props) {
   })
   if (!order) notFound()
   if (order.userId !== session.user.id) notFound()
+
+  const payment = await getPaymentSettings()
 
   const status = order.status as OrderStatus
   const statusColor = STATUS_COLOR[status] ?? '#a8a69f'
@@ -207,25 +208,49 @@ export default async function OrderDetailPage({ params }: Props) {
                 </Link>
               ))}
 
-              {/* Total row */}
+              {/* Totals breakdown */}
               <div style={{
                 padding: '18px',
                 borderTop: '1px dotted rgba(212,210,203,0.3)',
                 background: 'rgba(212,210,203,0.04)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                display: 'flex', flexDirection: 'column', gap: '10px',
               }}>
-                <p style={{
-                  fontSize: '11px', letterSpacing: '0.18em', textTransform: 'uppercase',
-                  color: '#a8a69f',
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: '#a8a69f', letterSpacing: '0.05em' }}>Subtotal</span>
+                  <span style={{ fontSize: '12px', color: '#d4d2cb', fontVariantNumeric: 'tabular-nums' }}>
+                    {formatRupiah(order.subtotal)}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: '#a8a69f', letterSpacing: '0.05em' }}>
+                    Pengiriman{order.shippingDistanceKm ? ` (± ${order.shippingDistanceKm} km)` : ''}
+                  </span>
+                  <span style={{
+                    fontSize: '12px',
+                    color: order.shippingCost === 0 ? '#86efac' : '#d4d2cb',
+                    fontWeight: order.shippingCost === 0 ? 700 : 400,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {order.shippingCost === 0 ? 'GRATIS' : formatRupiah(order.shippingCost)}
+                  </span>
+                </div>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  paddingTop: '10px', borderTop: '1px dotted rgba(212,210,203,0.2)',
                 }}>
-                  Total
-                </p>
-                <p style={{
-                  fontSize: '20px', fontWeight: 700, color: '#d4d2cb',
-                  letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums',
-                }}>
-                  {formatRupiah(order.total)}
-                </p>
+                  <p style={{
+                    fontSize: '11px', letterSpacing: '0.18em', textTransform: 'uppercase',
+                    color: '#a8a69f',
+                  }}>
+                    Total
+                  </p>
+                  <p style={{
+                    fontSize: '20px', fontWeight: 700, color: '#d4d2cb',
+                    letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {formatRupiah(order.total)}
+                  </p>
+                </div>
               </div>
             </div>
           </section>
@@ -244,9 +269,9 @@ export default async function OrderDetailPage({ params }: Props) {
                 background: 'rgba(212,210,203,0.03)',
               }}>
                 {paymentMethod === 'transfer' ? (
-                  <BankTransferInfo total={order.total} />
+                  <BankTransferInfo total={order.total} bank={payment} />
                 ) : (
-                  <QrisInfo total={order.total} />
+                  <QrisInfo total={order.total} qris={payment} />
                 )}
 
                 <div style={{
@@ -463,7 +488,7 @@ export default async function OrderDetailPage({ params }: Props) {
   )
 }
 
-function BankTransferInfo({ total }: { total: number }) {
+function BankTransferInfo({ total, bank }: { total: number; bank: PaymentSettings }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
@@ -481,22 +506,22 @@ function BankTransferInfo({ total }: { total: number }) {
             fontSize: '13px', fontWeight: 700, color: '#d4d2cb',
             letterSpacing: '0.05em', textTransform: 'uppercase',
           }}>
-            {BANK_INFO.bankName}
+            {bank.bankName}
           </p>
-          {BANK_INFO.branch && (
-            <p style={{ fontSize: '10px', color: '#a8a69f' }}>{BANK_INFO.branch}</p>
+          {bank.branch && (
+            <p style={{ fontSize: '10px', color: '#a8a69f' }}>{bank.branch}</p>
           )}
         </div>
       </div>
 
-      <CopyRow label="Nomor Rekening" value={BANK_INFO.accountNumber} mono />
-      <CopyRow label="Atas Nama" value={BANK_INFO.accountName} />
+      <CopyRow label="Nomor Rekening" value={bank.accountNumber} mono />
+      <CopyRow label="Atas Nama" value={bank.accountName} />
       <CopyRow label="Jumlah Transfer" value={formatRupiah(total)} highlight mono />
     </div>
   )
 }
 
-function QrisInfo({ total }: { total: number }) {
+function QrisInfo({ total, qris }: { total: number; qris: PaymentSettings }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
@@ -514,7 +539,7 @@ function QrisInfo({ total }: { total: number }) {
             fontSize: '13px', fontWeight: 700, color: '#d4d2cb',
             letterSpacing: '0.05em', textTransform: 'uppercase',
           }}>
-            QRIS — {QRIS_MERCHANT_NAME}
+            QRIS — {qris.qrisMerchantName}
           </p>
           <p style={{ fontSize: '10px', color: '#a8a69f' }}>
             Scan dengan aplikasi e-wallet / mobile banking
@@ -531,8 +556,8 @@ function QrisInfo({ total }: { total: number }) {
       }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={QRIS_IMAGE_URL}
-          alt={`QR code ${QRIS_MERCHANT_NAME}`}
+          src={qris.qrisImageUrl}
+          alt={`QR code ${qris.qrisMerchantName}`}
           width={260}
           height={260}
           style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
