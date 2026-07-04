@@ -54,6 +54,8 @@ export async function createProductAction(data: ProductInput): Promise<ActionRes
       name: parsed.data.name,
       slug,
       price: parsed.data.price,
+      // Snapshot the launch price so a later price drop surfaces the item under SALE.
+      originalPrice: parsed.data.price,
       stock: parsed.data.stock,
       description: parsed.data.description || null,
       image: parsed.data.image || null,

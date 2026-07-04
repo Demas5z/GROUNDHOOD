@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft, MapPin, Phone, User, Building2, QrCode, Receipt as ReceiptIcon, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, MapPin, Phone, User, Building2, QrCode, Receipt as ReceiptIcon, CheckCircle2, AlertCircle } from 'lucide-react'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import {
@@ -48,6 +48,10 @@ export default async function OrderDetailPage({ params }: Props) {
   ]
   const cancelled = order.status === 'dibatalkan'
   const currentIdx = cancelled ? -1 : trackingStatuses.indexOf(status)
+  // Admin rejected the uploaded proof. The reject action clears `proofImage`
+  // (the file is deleted from disk), so the rejection notice can't live inside
+  // the proof-preview block — surface it on its own here, with the reason.
+  const paymentRejected = order.payment?.status === 'tidak_valid'
 
   return (
     <div>
@@ -140,6 +144,53 @@ export default async function OrderDetailPage({ params }: Props) {
               zIndex: -1,
             }} />
           </div>
+        </section>
+      )}
+
+      {/* Payment rejected notice — shown whenever the admin marked the proof
+          invalid, regardless of whether a proof file still exists. */}
+      {paymentRejected && (
+        <section style={{
+          marginBottom: '32px',
+          padding: '20px 24px',
+          border: '1px dotted rgba(248,113,113,0.5)',
+          borderRadius: '20px',
+          background: 'rgba(248,113,113,0.06)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <AlertCircle size={16} color="#f87171" />
+            <p style={{
+              fontSize: '12px', fontWeight: 700, color: '#f87171',
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+            }}>
+              Bukti Pembayaran Ditolak
+            </p>
+          </div>
+          <p style={{
+            fontSize: '11px', color: '#d4d2cb', lineHeight: 1.8,
+            marginBottom: order.payment?.notes ? '14px' : 0,
+          }}>
+            Admin menolak bukti pembayaran yang kamu unggah. Silakan periksa alasannya
+            lalu unggah ulang bukti yang sesuai melalui form di samping.
+          </p>
+          {order.payment?.notes && (
+            <div style={{
+              padding: '12px 16px',
+              background: 'rgba(248,113,113,0.08)',
+              border: '1px dotted rgba(248,113,113,0.3)',
+              borderRadius: '12px',
+            }}>
+              <p style={{
+                fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: '#f87171', marginBottom: '6px',
+              }}>
+                Alasan Penolakan
+              </p>
+              <p style={{ fontSize: '11px', color: '#d4d2cb', lineHeight: 1.8 }}>
+                {order.payment.notes}
+              </p>
+            </div>
+          )}
         </section>
       )}
 
@@ -383,7 +434,9 @@ export default async function OrderDetailPage({ params }: Props) {
               <UploadProofForm
                 orderId={order.id}
                 defaultProofImage={order.payment?.proofImage}
-                defaultNotes={order.payment?.notes}
+                // After a rejection `notes` holds the admin's reason, not the
+                // customer's note — don't pre-fill it back into the form.
+                defaultNotes={paymentRejected ? null : order.payment?.notes}
               />
             </section>
           )}

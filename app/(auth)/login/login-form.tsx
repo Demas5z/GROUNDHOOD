@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,6 +13,7 @@ import { loginAction } from '@/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import BrandLogo from '@/components/BrandLogo'
 import type { WebAsset } from '@/lib/assets'
 
 const loginSchema = z.object({
@@ -31,6 +33,7 @@ const fadeInUp = {
 }
 
 export default function LoginForm({ bg }: { bg: WebAsset }) {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const registered = searchParams.get('registered')
   const callbackUrl = searchParams.get('callbackUrl') ?? undefined
@@ -50,10 +53,27 @@ export default function LoginForm({ bg }: { bg: WebAsset }) {
   function onSubmit(values: LoginValues) {
     setServerError(null)
     startTransition(async () => {
-      const result = await loginAction({ ...values, callbackUrl })
-      if (result?.error) {
-        setServerError(result.error)
+      // Server pre-check: friendly "email not verified" message + role-based redirect.
+      const pre = await loginAction({ ...values, callbackUrl })
+      if (pre?.error) {
+        setServerError(pre.error)
+        return
       }
+
+      // Sign in client-side so the SessionProvider cache updates immediately —
+      // the navbar reflects the logged-in state without a manual refresh.
+      const res = await signIn('credentials', {
+        email: values.email,
+        password: values.password,
+        redirect: false,
+      })
+      if (!res || res.error) {
+        setServerError('Invalid email or password')
+        return
+      }
+
+      router.push(pre.redirectTo ?? '/')
+      router.refresh()
     })
   }
 
@@ -106,11 +126,8 @@ export default function LoginForm({ bg }: { bg: WebAsset }) {
           display: 'flex', flexDirection: 'column',
           justifyContent: 'space-between', padding: '48px 44px',
         }}>
-          <Link href="/" style={{
-            fontSize: '17px', fontWeight: '700', letterSpacing: '0.15em',
-            textTransform: 'uppercase', color: '#d4d2cb', textDecoration: 'none',
-          }}>
-            GROUNDHOOD
+          <Link href="/" aria-label="GROUNDHOOD — Beranda" style={{ display: 'inline-flex' }}>
+            <BrandLogo priority height={20} />
           </Link>
 
           <motion.div

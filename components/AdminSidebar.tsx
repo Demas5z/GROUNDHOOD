@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
   Package,
@@ -15,7 +16,8 @@ import {
   LogOut,
   ExternalLink,
 } from 'lucide-react'
-import { logoutAction } from '@/actions/auth'
+import BrandLogo from '@/components/BrandLogo'
+import RealtimeRefresh from '@/components/RealtimeRefresh'
 
 type AdminUser = {
   name: string | null
@@ -59,17 +61,18 @@ export default function AdminSidebar({ user }: { user: AdminUser }) {
       maxHeight: '100vh',
       overflowY: 'auto',
     }}>
+      {/* Event-driven refresh (SSE + tab focus) for admin screens. */}
+      <RealtimeRefresh />
+
       {/* Brand header */}
       <div style={{
         padding: '24px 28px 20px',
         borderBottom: '1px dotted rgba(212,210,203,0.3)',
       }}>
-        <Link href="/admin" style={{
-          fontSize: '17px', fontWeight: '700', letterSpacing: '0.15em',
-          textTransform: 'uppercase', color: '#d4d2cb', textDecoration: 'none',
-          display: 'block', marginBottom: '4px',
+        <Link href="/admin" aria-label="GROUNDHOOD Admin — Dashboard" style={{
+          display: 'inline-flex', marginBottom: '6px',
         }}>
-          GROUNDHOOD
+          <BrandLogo height={18} />
         </Link>
         <p style={{
           fontSize: '9px', letterSpacing: '0.2em', textTransform: 'uppercase',
@@ -157,22 +160,21 @@ export default function AdminSidebar({ user }: { user: AdminUser }) {
           <ExternalLink size={12} />
           View Store
         </Link>
-        <form action={logoutAction}>
-          <button
-            type="submit"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: '#a8a69f', padding: 0, transition: 'color 0.2s', width: '100%',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#a8a69f')}
-          >
-            <LogOut size={12} />
-            Logout
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: '/' })}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: '#a8a69f', padding: 0, transition: 'color 0.2s', width: '100%',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#a8a69f')}
+        >
+          <LogOut size={12} />
+          Logout
+        </button>
       </div>
     </aside>
   )

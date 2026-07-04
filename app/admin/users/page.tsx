@@ -1,9 +1,15 @@
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import { Shield } from 'lucide-react'
 import { formatRupiah } from '@/lib/order-status'
+import DeleteUserButton from './DeleteUserButton'
 
 export default async function UsersPage() {
+  const session = await auth()
+  const currentUserId = session?.user?.id
+
   const users = await prisma.user.findMany({
+    where: { deletedAt: null },
     orderBy: { createdAt: 'desc' },
     include: {
       _count: { select: { orders: true } },
@@ -34,13 +40,13 @@ export default async function UsersPage() {
 
       <div style={{ border: '1px dotted rgba(212,210,203,0.2)', borderRadius: '4px', overflow: 'auto' }}>
         <div style={{
-          display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 90px 80px 130px 130px',
+          display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 90px 80px 130px 130px 90px',
           padding: '12px 20px',
           borderBottom: '1px dotted rgba(212,210,203,0.2)',
           background: 'rgba(212,210,203,0.03)',
-          gap: '14px', minWidth: '900px',
+          gap: '14px', minWidth: '980px',
         }}>
-          {['Nama', 'Email', 'Role', 'Pesanan', 'Total Spent', 'Bergabung'].map((h, i) => (
+          {['Nama', 'Email', 'Role', 'Pesanan', 'Total Spent', 'Bergabung', 'Aksi'].map((h, i) => (
             <p key={i} style={{
               fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase',
               color: '#a8a69f',
@@ -50,15 +56,23 @@ export default async function UsersPage() {
           ))}
         </div>
 
+        {users.length === 0 && (
+          <div style={{ padding: '48px 20px', textAlign: 'center', minWidth: '980px' }}>
+            <p style={{ fontSize: '11px', color: '#a8a69f', letterSpacing: '0.05em' }}>
+              Belum ada data pelanggan.
+            </p>
+          </div>
+        )}
+
         {users.map((u, i) => {
           const totalSpent = u.orders.reduce((s, o) => s + o.total, 0)
           const isAdmin = u.role === 'admin'
           return (
             <div key={u.id} style={{
-              display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 90px 80px 130px 130px',
+              display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 90px 80px 130px 130px 90px',
               padding: '14px 20px', alignItems: 'center', gap: '14px',
               borderTop: i > 0 ? '1px dotted rgba(212,210,203,0.1)' : 'none',
-              minWidth: '900px',
+              minWidth: '980px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                 <div style={{
@@ -106,6 +120,13 @@ export default async function UsersPage() {
                   day: 'numeric', month: 'short', year: 'numeric',
                 })}
               </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <DeleteUserButton
+                  id={u.id}
+                  name={u.name ?? u.email}
+                  isSelf={u.id === currentUserId}
+                />
+              </div>
             </div>
           )
         })}

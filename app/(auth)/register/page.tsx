@@ -11,6 +11,7 @@ import { registerAction } from '@/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import BrandLogo from '@/components/BrandLogo'
 
 const registerSchema = z
   .object({
@@ -109,11 +110,8 @@ export default function RegisterPage() {
           display: 'flex', flexDirection: 'column',
           justifyContent: 'space-between', padding: '48px 44px',
         }}>
-          <Link href="/" style={{
-            fontSize: '17px', fontWeight: '700', letterSpacing: '0.15em',
-            textTransform: 'uppercase', color: '#d4d2cb', textDecoration: 'none',
-          }}>
-            GROUNDHOOD
+          <Link href="/" aria-label="GROUNDHOOD — Beranda" style={{ display: 'inline-flex' }}>
+            <BrandLogo priority height={20} />
           </Link>
 
           <motion.div

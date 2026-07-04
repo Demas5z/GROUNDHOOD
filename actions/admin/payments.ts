@@ -4,6 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { deleteUploadedFile } from '@/lib/uploads'
+import { publish, userTopic, ADMIN_TOPIC } from '@/lib/realtime'
 
 export type ActionResult = { error?: string; success?: string }
 
@@ -68,6 +69,9 @@ export async function verifyPaymentAction(
   revalidatePath('/admin/payments')
   revalidatePath('/admin/orders')
   revalidatePath(`/admin/orders/${payment.orderId}`)
+
+  // Notify the customer (status changed) and any admin screen.
+  publish([userTopic(payment.order.userId), ADMIN_TOPIC])
   return {
     success: action === 'approve'
       ? 'Pembayaran dikonfirmasi, pesanan masuk tahap diproses.'

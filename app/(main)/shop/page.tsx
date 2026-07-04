@@ -17,16 +17,26 @@ export default async function ShopPage({
   const { cat, q } = await searchParams
   const search = q?.trim() ?? ''
 
-  // Resolve the category if provided. Unknown slugs (e.g. "new", "sale") fall through.
-  const activeCategory = cat
+  // "new" and "sale" are virtual filters from the nav menu, not real categories.
+  const isNew = cat === 'new'
+  const isSale = cat === 'sale'
+  const isSpecial = isNew || isSale
+
+  // Resolve a real category only when the slug isn't a virtual filter.
+  const activeCategory = cat && !isSpecial
     ? await prisma.category.findUnique({ where: { slug: cat } })
     : null
 
   const where: Prisma.ProductWhereInput = {}
   if (activeCategory) where.categoryId = activeCategory.id
   if (search) where.name = { contains: search }
+  if (isNew) {
+    // NEW IN — products added within the last 7 days.
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    where.createdAt = { gte: sevenDaysAgo }
+  }
 
-  const [products, categories] = await Promise.all([
+  const [rawProducts, categories] = await Promise.all([
     prisma.product.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -34,6 +44,20 @@ export default async function ShopPage({
     }),
     prisma.category.findMany({ orderBy: { name: 'asc' } }),
   ])
+
+  // SALE — current price below the original launch price. A two-column comparison
+  // can't be expressed in a Prisma `where`, so filter in memory.
+  const products = isSale
+    ? rawProducts.filter((p) => p.originalPrice != null && p.price < p.originalPrice)
+    : rawProducts
+
+  const heading = isNew
+    ? 'New In'
+    : isSale
+      ? 'Sale'
+      : activeCategory
+        ? activeCategory.name
+        : 'Semua Produk'
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '60px 40px 80px' }}>
@@ -45,7 +69,7 @@ export default async function ShopPage({
           textTransform: 'uppercase', letterSpacing: '-0.035em', color: '#d4d2cb',
           lineHeight: 1, marginBottom: '14px',
         }}>
-          {activeCategory ? activeCategory.name : 'Semua Produk'}
+          {heading}
         </h1>
         <p style={{ color: '#a8a69f', fontSize: '12px', lineHeight: 1.8 }}>
           {products.length} item{products.length !== 1 ? 's' : ''}
@@ -89,7 +113,7 @@ export default async function ShopPage({
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           <CategoryChip
             href={search ? `/shop?q=${encodeURIComponent(search)}` : '/shop'}
-            active={!activeCategory}
+            active={!activeCategory && !isSpecial}
           >
             All
           </CategoryChip>
@@ -117,11 +141,13 @@ export default async function ShopPage({
         }}>
           <Package size={36} color="rgba(212,210,203,0.25)" style={{ margin: '0 auto 18px' }} />
           <p style={{ fontSize: '12px', color: '#a8a69f', letterSpacing: '0.05em', marginBottom: '6px' }}>
-            {search || activeCategory
+            {search ? (
+              <>Produk dengan kata kunci "<span style={{ color: '#d4d2cb' }}>{search}</span>" tidak ditemukan.</>
+            ) : activeCategory || isSpecial
               ? 'Tidak ada produk yang cocok dengan filter ini.'
               : 'Belum ada produk tersedia.'}
           </p>
-          {(search || activeCategory) && (
+          {(search || activeCategory || isSpecial) && (
             <Link
               href="/shop"
               style={{
@@ -202,9 +228,20 @@ export default async function ShopPage({
                   }}>
                     {p.name}
                   </h3>
-                  <span style={{ fontSize: '12px', color: '#d4d2cb', whiteSpace: 'nowrap' }}>
-                    {formatRupiah(p.price)}
-                  </span>
+                  {p.originalPrice != null && p.price < p.originalPrice ? (
+                    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.3 }}>
+                      <span style={{ fontSize: '9px', color: '#75736d', textDecoration: 'line-through', whiteSpace: 'nowrap' }}>
+                        {formatRupiah(p.originalPrice)}
+                      </span>
+                      <span style={{ fontSize: '12px', color: '#86efac', whiteSpace: 'nowrap' }}>
+                        {formatRupiah(p.price)}
+                      </span>
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '12px', color: '#d4d2cb', whiteSpace: 'nowrap' }}>
+                      {formatRupiah(p.price)}
+                    </span>
+                  )}
                 </div>
               </div>
             </Link>

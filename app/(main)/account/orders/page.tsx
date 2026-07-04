@@ -16,7 +16,10 @@ export default async function OrdersPage() {
   const orders = await prisma.order.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: 'desc' },
-    include: { _count: { select: { items: true } } },
+    include: {
+      _count: { select: { items: true } },
+      payment: { select: { status: true } },
+    },
   })
 
   return (
@@ -129,6 +132,14 @@ export default async function OrdersPage() {
                   color: statusColor,
                 }}>
                   {STATUS_LABEL[order.status as OrderStatus] ?? order.status}
+                  {order.payment?.status === 'tidak_valid' && (
+                    <span style={{
+                      display: 'block', marginTop: '4px',
+                      color: '#f87171', letterSpacing: '0.1em',
+                    }}>
+                      Bukti ditolak — upload ulang
+                    </span>
+                  )}
                 </span>
                 <ChevronRight size={14} color="#a8a69f" className="order-list-chevron" />
               </Link>

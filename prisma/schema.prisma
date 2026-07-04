@@ -27,6 +27,9 @@ model User {
   verifyTokenExpiresAt DateTime?
   resetToken           String?   @unique
   resetTokenExpiresAt  DateTime?
+  // Soft-delete marker. When set, the user is treated as deleted: hidden from
+  // admin lists and blocked from logging in, but their order history is retained.
+  deletedAt            DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -49,6 +52,9 @@ model Product {
   name        String
   slug        String   @unique
   price       Int
+  // Price recorded when the product was first added. Set once on create and never
+  // overwritten on edits, so lowering `price` below this marks the item as "on sale".
+  originalPrice Int?
   stock       Int      @default(0)
   description String?  @db.Text
   image       String?  @db.Text

@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { getProvince } from '@/lib/regions'
 import { quoteShipping } from '@/lib/shipping'
+import { publish, ADMIN_TOPIC } from '@/lib/realtime'
 
 export type CheckoutResult = { error?: string; orderId?: string }
 
@@ -177,6 +178,9 @@ export async function createOrderAction(data: CheckoutInput): Promise<CheckoutRe
     revalidatePath('/account/orders')
     revalidatePath('/account/profile')
     revalidatePath('/', 'layout')
+
+    // Notify admin screens so a freshly placed order appears without refresh.
+    publish(ADMIN_TOPIC)
     return { orderId: order.id }
   } catch (error) {
     console.error('createOrderAction failed:', error)

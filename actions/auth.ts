@@ -2,8 +2,7 @@
 
 import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { signIn, signOut } from '@/auth'
-import { AuthError } from 'next-auth'
+import { signOut } from '@/auth'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email'
@@ -134,11 +133,22 @@ function isSafeCallbackUrl(url: string | undefined | null): url is string {
   return url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\')
 }
 
+export type LoginPrecheck = { error?: string; redirectTo?: string }
+
+/**
+ * Pre-check before the client performs the actual sign-in.
+ *
+ * The real sign-in is now done client-side (next-auth/react `signIn`) so the
+ * SessionProvider cache updates immediately and the navbar reflects the logged-in
+ * state without a manual refresh. This action only:
+ *   - returns a friendly message when the email isn't verified yet, and
+ *   - resolves the post-login redirect destination based on role.
+ */
 export async function loginAction(data: {
   email: string
   password: string
   callbackUrl?: string
-}): Promise<ActionResult> {
+}): Promise<LoginPrecheck> {
   // Look up role to choose redirect destination
   const user = await prisma.user.findUnique({
     where: { email: data.email },
@@ -160,24 +170,7 @@ export async function loginAction(data: {
     ? '/admin'
     : isSafeCallbackUrl(data.callbackUrl) ? data.callbackUrl : '/'
 
-  try {
-    await signIn('credentials', {
-      email: data.email,
-      password: data.password,
-      redirectTo,
-    })
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return { error: 'Invalid email or password' }
-        default:
-          return { error: 'Something went wrong. Please try again.' }
-      }
-    }
-    throw error // Re-throw NEXT_REDIRECT
-  }
-  return {}
+  return { redirectTo }
 }
 
 export async function logoutAction() {

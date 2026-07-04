@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, User, Package, Settings, LogOut } from 'lucide-react'
-import { logoutAction } from '@/actions/auth'
+import { signOut } from 'next-auth/react'
 
 type SidebarUser = {
   id: string
@@ -105,22 +105,21 @@ export default function AccountSidebar({ user }: { user: SidebarUser }) {
 
       {/* Sign out */}
       <div style={{ padding: '16px 28px 32px', borderTop: '1px dotted rgba(212,210,203,0.3)' }}>
-        <form action={logoutAction}>
-          <button
-            type="submit"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '12px',
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: '#a8a69f', padding: 0, transition: 'color 0.2s', width: '100%',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#a8a69f')}
-          >
-            <LogOut size={14} />
-            Logout
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: '/' })}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '12px',
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: '#a8a69f', padding: 0, transition: 'color 0.2s', width: '100%',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#a8a69f')}
+        >
+          <LogOut size={14} />
+          Logout
+        </button>
       </div>
     </aside>
   )

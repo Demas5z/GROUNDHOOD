@@ -4,6 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { ORDER_STATUSES, type OrderStatus } from '@/lib/order-status'
+import { publish, userTopic, ADMIN_TOPIC } from '@/lib/realtime'
 
 export type ActionResult = { error?: string; success?: string }
 
@@ -20,12 +21,16 @@ export async function updateOrderStatusAction(
   if (!(await requireAdmin())) return { error: 'Forbidden' }
   if (!ORDER_STATUSES.includes(status)) return { error: 'Status tidak valid.' }
 
-  await prisma.order.update({
+  const order = await prisma.order.update({
     where: { id },
     data: { status },
+    select: { userId: true },
   })
 
   revalidatePath('/admin/orders')
   revalidatePath(`/admin/orders/${id}`)
+
+  // Push a realtime signal so the customer's open order page refreshes itself.
+  publish([userTopic(order.userId), ADMIN_TOPIC])
   return { success: 'Status pesanan diupdate.' }
 }

@@ -3,33 +3,11 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Menu, X, Plus, Minus } from 'lucide-react'
-import { logoutAction } from '@/actions/auth'
-
-const menuItems = [
-  { label: 'New In', href: '/shop' },
-  { label: 'Restocks', href: '/shop' },
-  { label: 'Sale', href: '/shop', highlight: true },
-  {
-    label: 'Clothing',
-    submenu: [
-      { label: 'Tops', href: '/shop?cat=tops' },
-      { label: 'Bottoms', href: '/shop?cat=bottoms' },
-      { label: 'Outerwear', href: '/shop?cat=outerwear' },
-    ],
-  },
-  {
-    label: 'Accessories',
-    submenu: [
-      { label: 'All Accessories', href: '/shop?cat=accessories' },
-      { label: 'Hats', href: '/shop?cat=accessories' },
-      { label: 'Eyewear', href: '/shop?cat=accessories' },
-    ],
-  },
-  { label: 'Bags', href: '/shop?cat=accessories' },
-  { label: 'Sneakers', href: '/shop?cat=footwear' },
-]
+import BrandLogo from '@/components/BrandLogo'
+import RealtimeRefresh from '@/components/RealtimeRefresh'
 
 const socials = [
   { label: 'Facebook', href: '#' },
@@ -38,13 +16,30 @@ const socials = [
   { label: 'X', href: '#' },
 ]
 
-export default function Navbar({ cartCount = 0 }) {
+/**
+ * @param {{ cartCount?: number, categories?: { id: string, name: string, slug: string }[] }} props
+ */
+export default function Navbar({ cartCount = 0, categories = [] }) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState(null)
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const isAuthed = status === 'authenticated'
+  const reduceMotion = useReducedMotion()
+
+  // Menu structure: NEW IN (last 7 days) + SALE (price-dropped) are virtual filters;
+  // CLOTHING is a dropdown sourced live from admin-managed categories.
+  const menuItems = [
+    { label: 'New In', href: '/shop?cat=new' },
+    { label: 'Sale', href: '/shop?cat=sale', highlight: true },
+    categories.length > 0
+      ? {
+          label: 'Clothing',
+          submenu: categories.map((c) => ({ label: c.name, href: `/shop?cat=${c.slug}` })),
+        }
+      : { label: 'Clothing', href: '/shop' },
+  ]
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -66,8 +61,19 @@ export default function Navbar({ cartCount = 0 }) {
     return () => { document.body.style.overflow = '' }
   }, [menuOpen])
 
+  // Close the menu with the Escape key for keyboard accessibility.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menuOpen])
+
   return (
     <>
+      {/* Event-driven refresh (SSE + tab focus) — only for logged-in users. */}
+      {isAuthed && <RealtimeRefresh />}
+
       <div style={{
         background: '#d4d2cb',
         color: '#1a1a1a',
@@ -114,8 +120,8 @@ export default function Navbar({ cartCount = 0 }) {
           </div>
 
           {/* CENTER — Logo */}
-          <Link href="/" className="nav-logo">
-            GROUNDHOOD
+          <Link href="/" className="nav-logo" aria-label="GROUNDHOOD — Beranda">
+            <BrandLogo priority height="clamp(15px, 3.6vw, 20px)" />
           </Link>
 
           {/* RIGHT — About / Contact / Auth / Cart */}
@@ -139,20 +145,19 @@ export default function Navbar({ cartCount = 0 }) {
                     </svg>
                     {session?.user?.name?.split(' ')[0] ?? 'Account'}
                   </Link>
-                  <form action={logoutAction}>
-                    <button
-                      type="submit"
-                      title="Logout"
-                      aria-label="Logout"
-                      className="nav-signout"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                        <polyline points="16 17 21 12 16 7"/>
-                        <line x1="21" y1="12" x2="9" y2="12"/>
-                      </svg>
-                    </button>
-                  </form>
+                  <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    title="Logout"
+                    aria-label="Logout"
+                    className="nav-signout"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                      <polyline points="16 17 21 12 16 7"/>
+                      <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                  </button>
                 </div>
               ) : (
                 <>
@@ -184,12 +189,18 @@ export default function Navbar({ cartCount = 0 }) {
       </nav>
 
       {/* ─── MENU OVERLAY ─────────────────────────────────────────── */}
-      {menuOpen && (
-        <div
+      <AnimatePresence>
+        {menuOpen && (
+        <motion.div
+          key="menu-overlay"
           role="dialog"
           aria-modal="true"
           aria-label="Site menu"
           className="menu-overlay"
+          initial={reduceMotion ? { opacity: 0 } : { x: '-100%' }}
+          animate={reduceMotion ? { opacity: 1 } : { x: 0 }}
+          exit={reduceMotion ? { opacity: 0 } : { x: '-100%' }}
+          transition={{ duration: reduceMotion ? 0.15 : 0.45, ease: [0.4, 0, 0.2, 1] }}
         >
           {/* Overlay header */}
           <div style={{
@@ -339,8 +350,9 @@ export default function Navbar({ cartCount = 0 }) {
               </a>
             ))}
           </div>
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         /* ─── PREMIUM HOVER SYSTEM ─────────────────────────────
@@ -402,20 +414,15 @@ export default function Navbar({ cartCount = 0 }) {
 
         /* Logo */
         .nav-logo {
-          font-size: 20px;
-          font-weight: 700;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-          color: #d4d2cb;
-          text-decoration: none;
+          display: flex;
+          align-items: center;
           flex: 0 0 auto;
-          text-align: center;
-          transition: letter-spacing 500ms cubic-bezier(0.22, 1, 0.36, 1),
-                      color 300ms ease;
+          text-decoration: none;
+          opacity: 0.92;
+          transition: opacity 300ms ease;
         }
         .nav-logo:hover {
-          color: #fff;
-          letter-spacing: 0.2em;
+          opacity: 1;
         }
 
         /* Generic nav text link (About, Contact, Sign In) */
@@ -545,11 +552,8 @@ export default function Navbar({ cartCount = 0 }) {
           display: flex;
           flex-direction: column;
           overflow-y: auto;
-          animation: menuFade 280ms cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        @keyframes menuFade {
-          from { opacity: 0; }
-          to   { opacity: 1; }
+          overflow-x: hidden;
+          will-change: transform;
         }
 
         /* Close (X) button */
@@ -653,7 +657,7 @@ export default function Navbar({ cartCount = 0 }) {
                       opacity 300ms ease;
         }
         .menu-submenu.open {
-          max-height: 320px;
+          max-height: 800px;
           opacity: 1;
         }
 

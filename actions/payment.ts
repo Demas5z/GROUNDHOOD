@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { deleteUploadedFile } from '@/lib/uploads'
+import { publish, userTopic, ADMIN_TOPIC } from '@/lib/realtime'
 
 export type ActionResult = { error?: string; success?: string }
 
@@ -88,6 +89,9 @@ export async function uploadPaymentProofAction(data: {
     revalidatePath('/account/orders')
     revalidatePath('/admin/payments')
     revalidatePath('/admin/orders')
+
+    // Notify admin (new proof to verify) and refresh the customer's own view.
+    publish([userTopic(order.userId), ADMIN_TOPIC])
     return { success: 'Bukti pembayaran terkirim. Menunggu konfirmasi admin.' }
   } catch (error) {
     console.error('uploadPaymentProofAction failed:', error)

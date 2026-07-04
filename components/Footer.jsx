@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import BrandLogo from '@/components/BrandLogo'
 
 export default function Footer() {
   return (
@@ -37,9 +38,9 @@ export default function Footer() {
         margin: '0 auto',
       }}>
         <div style={{ gridColumn: 'span 2' }}>
-          <h2 className="footer-logo">
-            GROUNDHOOD
-          </h2>
+          <Link href="/" className="footer-logo" aria-label="GROUNDHOOD — Beranda">
+            <BrandLogo height="clamp(24px, 5vw, 32px)" />
+          </Link>
           <p style={{ color: '#a8a69f', fontSize: '12px', lineHeight: '1.8', maxWidth: '260px' }}>
             Thrift store produk secondhand pilihan. Temukan pakaian unik berkualitas dengan harga terjangkau.
           </p>
@@ -120,19 +121,13 @@ export default function Footer() {
 
         /* Logo wordmark */
         .footer-logo {
-          font-size: 32px;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          color: #d4d2cb;
-          margin-bottom: 16px;
           display: inline-block;
-          transition: letter-spacing 500ms cubic-bezier(0.22, 1, 0.36, 1),
-                      color 300ms ease;
+          margin-bottom: 16px;
+          opacity: 0.92;
+          transition: opacity 300ms ease;
         }
         .footer-logo:hover {
-          color: #fff;
-          letter-spacing: 0.09em;
+          opacity: 1;
         }
 
         /* Column links (Shop / Info) */
